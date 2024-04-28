@@ -1,4 +1,11 @@
 <?php
+//Connessione al db
+require_once 'connessione_db.php';
+
+// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
 
 // Gestione delle richieste OPTIONS per consentire le richieste preflight CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -9,25 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-
-$host = "localhost";
-$username = "root";
-$password = "root";
-$db = "instagram";
-$port = 3306;
-
-try {
-    $connection = new PDO("mysql:host=$host;dbname=$db;port=$port", $username, $password);
-    $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(["detail" => "Errore di connessione al database: " . $e->getMessage()]);
-    exit();
-}
 
 function inserisciCommento($connection, $user_id, $post_id, $text) {
     try {

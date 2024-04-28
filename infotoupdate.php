@@ -5,37 +5,23 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
 
-// Connessione al database MySQL
-$host = "localhost";
-$username = "root";
-$password = "root";
-$db = "instagram";
-$port = 3306;
-
-// Connessione al database
-$connection = new mysqli($host, $username, $password, $db, $port);
-
-// Verifica la connessione
-if ($connection->connect_error) {
-    die("Connessione al database fallita: " . $connection->connect_error);
-}
+// Includi il file per la connessione al database
+require_once 'connessione_db.php';
 
 // Funzione per ottenere la biografia e la password dell'utente
-function getUserInfoToUpdate($user_id) {
-    global $connection;
+function getUserInfoToUpdate($user_id, $connection) {
     $user_id = intval($user_id); // Converte l'id in un intero per sicurezza
     
-    // Esegui una query per ottenere la biografia e la password dell'utente specificato
-    $query = "SELECT descrizione, password FROM users WHERE id = $user_id";
-    $result = $connection->query($query);
+    // Prepara e esegui una query per ottenere la biografia e la password dell'utente specificato
+    $query = "SELECT descrizione, password FROM users WHERE id = :user_id";
+    $stmt = $connection->prepare($query);
+    $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+    $stmt->execute();
     
-    if ($result->num_rows > 0) {
-        // Se ci sono risultati, restituisci il risultato come array associativo
-        $row = $result->fetch_assoc();
-        return $row;
-    } else {
-        return null; // Se l'utente non viene trovato, restituisci null
-    }
+    // Ottieni il risultato come array associativo
+    $userInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    return $userInfo;
 }
 
 // Ottieni l'id dell'utente loggato
@@ -43,8 +29,8 @@ $loggedInUser = isset($_GET['loggedInUserId']) ? intval($_GET['loggedInUserId'])
 
 // Se l'id dell'utente loggato è valido, esegui la funzione per ottenere le informazioni dell'utente
 if ($loggedInUser !== null) {
-    $userInfo = getUserInfoToUpdate($loggedInUser);
-    if ($userInfo !== null) {
+    $userInfo = getUserInfoToUpdate($loggedInUser, $connection);
+    if ($userInfo !== false) {
         // Se le informazioni dell'utente sono state ottenute con successo, stampale come JSON
         echo json_encode($userInfo);
     } else {
@@ -57,5 +43,6 @@ if ($loggedInUser !== null) {
 }
 
 // Chiudi la connessione al database
-$connection->close();
+$connection = null;
+
 ?>

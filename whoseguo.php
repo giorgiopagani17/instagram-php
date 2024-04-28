@@ -1,17 +1,6 @@
 <?php
-// Credenziali di accesso al database
-$host = "localhost";
-$username = "root";
-$password = "root";
-$db = "instagram";
-$port = 3306;
-
 // Connessione al database
-$connection = new mysqli($host, $username, $password, $db, $port);
-
-if ($connection->connect_error) {
-    die("Connessione al database fallita: " . $connection->connect_error);
-}
+require_once 'connessione_db.php';
 
 if (isset($_GET['user_id'])) {
     $id = $_GET['user_id'];
@@ -28,17 +17,10 @@ if (isset($_GET['user_id'])) {
                 WHERE f.id_utente_follower = ? AND u_followed.username LIKE CONCAT('%', ?, '%')
                 LIMIT 0, 25";
             if ($stmt = $connection->prepare($query)) {
-                $stmt->bind_param("is", $id, $search);
+                $stmt->bindParam(1, $id, PDO::PARAM_INT);
+                $stmt->bindParam(2, $search, PDO::PARAM_STR);
                 $stmt->execute();
-                $stmt->bind_result($userId, $username, $img);
-                while ($stmt->fetch()) {
-                    $result[] = array(
-                        "id" => $userId,
-                        "username" => $username,
-                        "img" => $img
-                    );
-                }
-                $stmt->close();
+                $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         } else {
             $query = "
@@ -47,17 +29,9 @@ if (isset($_GET['user_id'])) {
                 INNER JOIN follow f ON u.id = f.id_utente_seguito
                 WHERE f.id_utente_follower = ?";
             if ($stmt = $connection->prepare($query)) {
-                $stmt->bind_param("i", $id);
+                $stmt->bindParam(1, $id, PDO::PARAM_INT);
                 $stmt->execute();
-                $stmt->bind_result($userId, $username, $img);
-                while ($stmt->fetch()) {
-                    $result[] = array(
-                        "id" => $userId,
-                        "username" => $username,
-                        "img" => $img
-                    );
-                }
-                $stmt->close();
+                $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         }
         return $result;
@@ -75,6 +49,6 @@ if (isset($_GET['user_id'])) {
     echo json_encode($seguiti, JSON_UNESCAPED_SLASHES);
 }
 
-// Chiudi la connessione al database
-$connection->close();
+// Chiudi la connessione al database (se necessario)
+// $connection = null;
 ?>

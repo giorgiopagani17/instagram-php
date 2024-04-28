@@ -1,25 +1,14 @@
 <?php
+//Connessione al db
+require_once 'connessione_db.php';
+
+// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET"); // Aggiungi qui tutti i metodi HTTP supportati (GET, POST, etc.)
+header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
 
 use DateTime;
 use stdClass;
-
-// Credenziali di accesso al database
-$host = "localhost";
-$username = "root";
-$password = "root";
-$db = "instagram";
-$port = 3306;
-
-// Connessione al database
-try {
-    $connection = new PDO("mysql:host=$host;dbname=$db;port=$port", $username, $password);
-    $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    // Se si verifica un errore durante la connessione, restituisci un'eccezione HTTP 500
-    http_response_code(500);
-    echo json_encode(["detail" => "Errore di connessione al database: " . $e->getMessage()]);
-    exit(); // Esci dallo script in caso di errore di connessione al database
-}
 
 // Definizione della classe Post
 class Post {
@@ -78,11 +67,6 @@ function get_user_posts($user_id) {
         exit();
     }
 }
-
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET"); // Aggiungi qui tutti i metodi HTTP supportati (GET, POST, etc.)
-header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
 
 // Verifica se il parametro user_id è presente nell'URL
 if (!isset($_GET['user_id'])) {

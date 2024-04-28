@@ -1,30 +1,21 @@
 <?php
 
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+//Cors Policy
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET");
-header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
+header("Access-Control-Allow-Headers: Content-Type"); 
 
-// Controlla se il parametro loggedInUserId è presente nella query string
+//Check se loggedInUserId esiste
 if (!isset($_GET['loggedInUserId'])) {
-    // Se non è presente, restituisci un errore
     http_response_code(400);
     echo json_encode(["detail" => "Parametro loggedInUserId mancante"]);
     exit();
 }
 
-// Credenziali di accesso al database
-$host = "localhost";
-$username = "root";
-$password = "root";
-$db = "instagram";
-$port = 3306;
+// Include il file per la connessione PDO al database
+require_once 'connessione_db.php';
 
 try {
-    // Crea la connessione
-    $connection = new PDO("mysql:host=$host;dbname=$db;port=$port", $username, $password);
-    $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
     // Ottieni l'ID dell'utente dalla query string
     $user_id = $_GET['loggedInUserId'];
 

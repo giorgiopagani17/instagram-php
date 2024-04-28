@@ -5,10 +5,15 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: DELETE");
 header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
 
+//Verifica se è una Delete
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    //Richiesta Options quindi esci
+    http_response_code(200);
+    exit();
+}
+
 // Funzione per gestire la richiesta di "unlike"
 function unlike() {
-    global $host, $username, $password, $db, $port;
-
     // Verifica se il corpo della richiesta contiene dati JSON
     $data = json_decode(file_get_contents('php://input'), true);
 
@@ -46,32 +51,18 @@ function unlike() {
     $id_post = intval($_GET['idPost']);
 
     // Connessione al database MySQL
-    $host = "localhost";
-    $username = "root";
-    $password = "root";
-    $db = "instagram";
-    $port = 3306;
-
-    // Connessione al database
-    $connection = new mysqli($host, $username, $password, $db, $port);
-
-    // Verifica se la connessione è riuscita
-    if ($connection->connect_error) {
-        // Se la connessione al database fallisce, restituisci un errore
-        http_response_code(500);
-        echo json_encode(["detail" => "Errore di connessione al database: " . $connection->connect_error]);
-        exit();
-    }
+    require_once 'connessione_db.php';
 
     try {
         // Prepara e esegui l'eliminazione del like nella tabella like_instagram
         $query = "DELETE FROM like_instagram WHERE id_post = ? AND id_utente_like = ?";
         $statement = $connection->prepare($query);
-        $statement->bind_param("ii", $id_post, $loggedInUser);
+        $statement->bindParam(1, $id_post, PDO::PARAM_INT);
+        $statement->bindParam(2, $loggedInUser, PDO::PARAM_INT);
         $statement->execute();
     
         // Verifica se l'eliminazione è avvenuta con successo
-        if ($statement->affected_rows > 0) {
+        if ($statement->rowCount() > 0) {
             // Se l'eliminazione ha avuto successo, restituisci una conferma
             http_response_code(200);
             echo json_encode(["Message" => "OK"]);
@@ -80,14 +71,17 @@ function unlike() {
             http_response_code(400);
             echo json_encode(["Message" => "Non è stato trovato alcun like da eliminare per questo post"]);
         }
-    } catch (Exception $e) {
+    } catch (PDOException $e) {
         // Gestione dell'eccezione in caso di errore durante l'eliminazione
         http_response_code(500);
         echo json_encode(["Message" => "Errore durante l'eliminazione nella tabella like: " . $e->getMessage()]);    
     } finally {
-        // Chiudi la connessione e il cursore
-        $statement->close();
-        $connection->close();
+        // Chiudi il cursore
+        if ($statement) {
+            $statement->closeCursor();
+        }
+        // Chiudi la connessione
+        $connection = null;
     }
 }
 

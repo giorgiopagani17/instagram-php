@@ -32,9 +32,9 @@ function upload_image($user_id, $file, $description) {
         }
 
         //Commentato perchè almeno funziona al prof
-        // $file_path = $save_folder . basename($file["name"]);
+         $file_path = $save_folder . basename($file["name"]);
         //salvo l'immagine nella cartella
-        // move_uploaded_file($file["tmp_name"], $file_path);
+         move_uploaded_file($file["tmp_name"], $file_path);
 
         // Inserisci i dati nel database
         $img_path = $save_folder . $file["name"];

@@ -1,11 +1,7 @@
 <?php
+//Connessione al db
+require_once 'connessione_db.php';
 
-// Connessione al database MySQL
-$host = "localhost";
-$username = "root";
-$password = "root";
-$db = "instagram";
-$port = 3306;
 
 // Imposta l'header CORS per consentire le richieste da qualsiasi origine
 header("Access-Control-Allow-Origin: *");
@@ -32,9 +28,6 @@ if (!is_numeric($_GET['user_id'])) {
 $user_id = intval($_GET['user_id']);
 
 try {
-    $connection = new PDO("mysql:host=$host;dbname=$db;port=$port", $username, $password);
-    $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
     // Prepara le query SQL
     $query_username = "SELECT username FROM users WHERE id = ?";
     $query_description = "SELECT descrizione FROM users WHERE id = ?";

@@ -1,20 +1,7 @@
 <?php
+//Connessione al db
+require_once 'connessione_db.php';
 
-// Connessione al database MySQL
-$host = "localhost";
-$username = "root";
-$password = "root";
-$db = "instagram";
-$port = 3306;
-
-try {
-    $connection = new PDO("mysql:host=$host;dbname=$db;port=$port", $username, $password);
-    $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(["detail" => "Errore di connessione al database: " . $e->getMessage()]);
-    exit(); // Esci dallo script in caso di errore di connessione al database
-}
 
 // Imposta l'header CORS per consentire le richieste da qualsiasi origine
 header("Access-Control-Allow-Origin: *");
