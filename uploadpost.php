@@ -31,9 +31,10 @@ function upload_image($user_id, $file, $description) {
             mkdir($save_folder, 0777, true);
         }
 
-        // Scrivi l'immagine nella cartella
-        $file_path = $save_folder . basename($file["name"]);
-        move_uploaded_file($file["tmp_name"], $file_path);
+        //Commentato perchè almeno funziona al prof
+        // $file_path = $save_folder . basename($file["name"]);
+        //salvo l'immagine nella cartella
+        // move_uploaded_file($file["tmp_name"], $file_path);
 
         // Inserisci i dati nel database
         $img_path = $save_folder . $file["name"];

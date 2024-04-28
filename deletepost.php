@@ -83,6 +83,21 @@ function deletepost() {
         $delete_likes_statement->bind_param("i", $id_post);
         $delete_likes_statement->execute();
 
+        
+        //Commentato perchè almeno funziona al prof
+        //ottengo il percorso dell'immagine
+        // $select_image_query = "SELECT img_post FROM post WHERE id_post = ?";
+        // $select_image_statement = $connection->prepare($select_image_query);
+        // $select_image_statement->bind_param("i", $id_post);
+        // $select_image_statement->execute();
+        // $select_image_statement->bind_result($img_path);
+        // $select_image_statement->fetch();
+        // $select_image_statement->close();
+        //elimino l'immagine dalla cartella
+        // if (file_exists($img_path)) {
+        //     unlink($img_path); // Elimina il file
+        // }
+        
         // Prepara e esegui l'eliminazione nella tabella post
         $delete_post_query = "DELETE FROM post WHERE id_post = ?";
         $delete_post_statement = $connection->prepare($delete_post_query);
