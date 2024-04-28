@@ -59,9 +59,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["file"])) {
     $description = $_POST["description"];
     
     $result = upload_image($user_id, $file, $description);
-    
+
+    if ($result === true) {
+        // L'upload è stato completato con successo
+        $response = ["message" => "Post inserito correttamente"];
+    } else {
+        // Si è verificato un errore durante l'upload
+        $response = ["error" => $result];
+    }
+
     // Ritorna la risposta come JSON
-    echo json_encode($result);
+    echo json_encode($response);
+
 }
 
 // Chiudi la connessione al database

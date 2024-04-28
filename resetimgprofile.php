@@ -3,18 +3,8 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: PUT");
 header("Access-Control-Allow-Headers: Content-Type");
 
-// Credenziali di accesso al database
-$host = "localhost";
-$username = "root";
-$password = "root";
-$db = "instagram";
-$port = 3306;
-
-// Connessione al database
-$connection = new mysqli($host, $username, $password, $db, $port);
-if ($connection->connect_error) {
-    die("Connessione al database fallita: " . $connection->connect_error);
-}
+// Include il file per la connessione PDO al database
+require_once 'connessione_db.php';
 
 // Funzione per caricare l'immagine del profilo
 function uploadProfileImage($user_id, $imageName) {
@@ -30,11 +20,9 @@ function uploadProfileImage($user_id, $imageName) {
         // Selezione l'immagine vecchia nel database
         $query = "SELECT img FROM users WHERE id = ?";
         $stmt = $connection->prepare($query);
-        $stmt->bind_param("i", $user_id);
+        $stmt->bindValue(1, $user_id, PDO::PARAM_INT);
         $stmt->execute();
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        $old_img_path = $row['img'];
+        $old_img_path = $stmt->fetchColumn();
 
         // Elimina l'immagine precedente se esiste
         if ($old_img_path && $old_img_path != 'C:/Users/giorg/Instagram/imgUtenti/default.jpg') {
@@ -45,18 +33,19 @@ function uploadProfileImage($user_id, $imageName) {
 
         // Aggiorna il percorso dell'immagine nel database
         $file_path = $save_folder . $imageName;
-        $query = "UPDATE users SET img = ? WHERE id = ?";
-        $stmt = $connection->prepare($query);
-        $stmt->bind_param("si", $file_path, $user_id);
-        $stmt->execute();
+        $update_query = "UPDATE users SET img = ? WHERE id = ?";
+        $update_stmt = $connection->prepare($update_query);
+        $update_stmt->bindValue(1, $file_path, PDO::PARAM_STR);
+        $update_stmt->bindValue(2, $user_id, PDO::PARAM_INT);
+        $update_stmt->execute();
 
         return ["filename" => $file_path, "user_id" => $user_id];
-    } catch (Exception $e) {
+    } catch (PDOException $e) {
         error_log("Errore durante l'upload e l'inserimento nel database: " . $e->getMessage());
         return ["Message" => "Error"];
     } finally {
         if (isset($stmt)) {
-            $stmt->close();
+            $stmt->closeCursor();
         }
     }
 }

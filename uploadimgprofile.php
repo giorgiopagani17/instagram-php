@@ -3,21 +3,11 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type");
 
-// Credenziali di accesso al database
-$host = "localhost";
-$username = "root";
-$password = "root";
-$db = "instagram";
-$port = 3306;
-
-// Connessione al database
-$connection = new mysqli($host, $username, $password, $db, $port);
-if ($connection->connect_error) {
-    die("Connessione al database fallita: " . $connection->connect_error);
-}
+// Include il file per la connessione PDO al database
+require_once 'connessione_db.php';
 
 // Funzione per caricare l'immagine del profilo
-function uploadProfileImage($user_id) {
+function uploadProfileImage($user_id, $file) {
     global $connection;
 
     try {
@@ -28,13 +18,11 @@ function uploadProfileImage($user_id) {
         }
 
         // Ottieni il percorso dell'immagine vecchia dal database
-        $query = "SELECT img FROM users WHERE id = ?";
+        $query = "SELECT img FROM users WHERE id = :user_id";
         $stmt = $connection->prepare($query);
-        $stmt->bind_param("i", $user_id);
+        $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
         $stmt->execute();
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        $old_img_path = $row['img'];
+        $old_img_path = $stmt->fetchColumn();
 
         // Elimina l'immagine precedente se esiste
         if ($old_img_path && $old_img_path != 'C:/Users/giorg/Instagram/imgUtenti/default.jpg') {
@@ -44,7 +32,7 @@ function uploadProfileImage($user_id) {
         }
 
         // Ottieni il percorso del file temporaneo
-        $temp_file = $_FILES['file']['tmp_name'];
+        $temp_file = $file['tmp_name'];
 
         // Costruisci il percorso del file finale
         $file_path = $save_folder . "user_" . $user_id . ".jpg";
@@ -55,9 +43,10 @@ function uploadProfileImage($user_id) {
         }
 
         // Aggiorna il percorso dell'immagine nel database
-        $query = "UPDATE users SET img = ? WHERE id = ?";
+        $query = "UPDATE users SET img = :file_path WHERE id = :user_id";
         $stmt = $connection->prepare($query);
-        $stmt->bind_param("si", $file_path, $user_id);
+        $stmt->bindParam(':file_path', $file_path, PDO::PARAM_STR);
+        $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
         $stmt->execute();
 
         return ["filename" => $file_path, "user_id" => $user_id];
@@ -66,16 +55,17 @@ function uploadProfileImage($user_id) {
         return ["Message" => "Error"];
     } finally {
         if (isset($stmt)) {
-            $stmt->close();
+            $stmt->closeCursor();
         }
     }
 }
 
-// Ottieni l'ID dell'utente dalla richiesta
+// Ottieni l'ID dell'utente e il file dall'array $_FILES
 $user_id = intval($_POST['user_id']);
+$file = $_FILES['file'];
 
 // Chiamata alla funzione per caricare l'immagine del profilo
-$result = uploadProfileImage($user_id);
+$result = uploadProfileImage($user_id, $file);
 
 // Restituisci la risposta JSON
 header('Content-Type: application/json');
