@@ -13,7 +13,7 @@ function getUserInfoToUpdate($user_id, $connection) {
     $user_id = intval($user_id); // Converte l'id in un intero per sicurezza
     
     // Prepara e esegui una query per ottenere la biografia e la password dell'utente specificato
-    $query = "SELECT descrizione, password FROM users WHERE id = :user_id";
+    $query = "SELECT descrizione FROM users WHERE id = :user_id";
     $stmt = $connection->prepare($query);
     $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
     $stmt->execute();

@@ -1,5 +1,5 @@
 <?php
-//Connessione al db
+// Connessione al database
 require_once 'connessione_db.php';
 
 // Imposta l'header CORS per consentire le richieste da qualsiasi origine
@@ -33,12 +33,15 @@ function registerUser($username, $email, $password) {
         exit();
     }
 
+    // Cripta la password
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
     // Inserimento del nuovo utente nel database
     $imgUtente = 'C:/Users/giorg/Instagram/imgUtenti/default.jpg'; // Assumiamo un'immagine predefinita per tutti gli utenti
     $description = ""; // Assumiamo una descrizione vuota per tutti gli utenti
 
     $stmt_insert_user = $connection->prepare("INSERT INTO users (username, email, password, img, descrizione) VALUES (?, ?, ?, ?, ?)");
-    $stmt_insert_user->execute([$username, $email, $password, $imgUtente, $description]);
+    $stmt_insert_user->execute([$username, $email, $hashed_password, $imgUtente, $description]);
 
     echo json_encode(["Message" => "OK"]);
 }
