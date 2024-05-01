@@ -33,8 +33,7 @@ function upload_image($user_id, $file, $description, $connection) {
         $statement->bindParam(3, $description, PDO::PARAM_STR);
         $statement->bindParam(4, $current_date, PDO::PARAM_STR);
         $statement->execute();
-        $statement->close();
-
+        
         return ["filename" => $img_path, "description" => $description, "user_id" => $user_id];
     } catch (Exception $e) {
         error_log("Errore durante l'upload e l'inserimento nel database: " . $e->getMessage());
@@ -56,12 +55,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["file"])) {
             $stmt_get_user = $connection->prepare($query_get_user);
             $stmt_get_user->execute([$user_id]);
             $user_exists = $stmt_get_user->fetch(PDO::FETCH_ASSOC);
-    
+
             if (!$user_exists) {
+                http_response_code(404); // Utente non trovato
                 echo json_encode(["error" => "Utente non trovato con ID $user_id"]);
-                exit(); // Esci dallo script se l'utente non esiste
+                exit(); // Esci dallo script
             }
-    
+
             //Se esiste svolgi l'upload
             $result = upload_image($user_id, $file, $description, $connection);
 
@@ -80,4 +80,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["file"])) {
 }
 
 $connection = null;
+
 ?>
