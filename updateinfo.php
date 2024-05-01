@@ -90,7 +90,7 @@ if (isset($data["username"]) && isset($data["password"]) && isset($data["descrip
             if ($update_performed) {
                 echo json_encode(["message" => "Informazioni utente aggiornate con successo"]);
             } else {
-                http_response_code(204);
+                echo json_encode(["message" => "Nessuna modifica avvenuta perchè i dati sono uguali"]);
             }
         } catch (Exception $e) {
             http_response_code(500);
