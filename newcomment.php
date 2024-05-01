@@ -2,12 +2,12 @@
 //Connessione al db
 require_once 'connessione_db.php';
 
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+//Cors Policy
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
-// Gestione delle richieste OPTIONS per consentire le richieste preflight CORS
+//Gestione richiesta options (possibile errore)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -16,9 +16,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-
 function inserisciCommento($connection, $user_id, $post_id, $text) {
     try {
+        //Check se utente esiste
+        $query_check_user = "SELECT id FROM users WHERE id = ?";
+        $statement_check_user = $connection->prepare($query_check_user);
+        $statement_check_user->bindParam(1, $user_id, PDO::PARAM_INT);
+        $statement_check_user->execute();
+        $result_check_user = $statement_check_user->fetch(PDO::FETCH_ASSOC);
+
+        if (!$result_check_user) {
+            http_response_code(400);
+            echo json_encode(["detail" => "L'utente non esiste"]);
+            exit();
+        }
+
+        //Check se post esiste
+        $query_check_post = "SELECT id_post FROM post WHERE id_post = ?";
+        $statement_check_post = $connection->prepare($query_check_post);
+        $statement_check_post->bindParam(1, $post_id, PDO::PARAM_INT);
+        $statement_check_post->execute();
+        $result_check_post = $statement_check_post->fetch(PDO::FETCH_ASSOC);
+
+        if (!$result_check_post) {
+            http_response_code(400);
+            echo json_encode(["detail" => "Il post non esiste"]);
+            exit();
+        }
+
+        //Inserimento commento nel db
         $query = "INSERT INTO commenti (id_utente, id_post, text_commento) VALUES (?, ?, ?)";
         $statement = $connection->prepare($query);
         $statement->bindParam(1, $user_id, PDO::PARAM_INT);
@@ -39,6 +65,7 @@ function inserisciCommento($connection, $user_id, $post_id, $text) {
     }
 }
 
+//Check & Get InputDati
 $data = json_decode(file_get_contents('php://input'), true);
 $user_id = $data['idUser'];
 $post_id = $data['idPost'];

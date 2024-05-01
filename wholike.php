@@ -1,14 +1,30 @@
 <?php
-// Connessione al database
+//Connessione al db
 require_once 'connessione_db.php';
 
+//Cors Policy
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET");
+header("Access-Control-Allow-Headers: Content-Type");
+
+//Check se post esiste
 if (isset($_GET['id_post'])) {
     $id = $_GET['id_post'];
     $search = isset($_GET['search']) ? $_GET['search'] : null;
 
-    // Funzione per cercare i like
+    $query_check_post = "SELECT id_post FROM post WHERE id_post = ?";
+    $stmt_check_post = $connection->prepare($query_check_post);
+    $stmt_check_post->execute([$id]);
+    $post_exists = $stmt_check_post->fetch();
+
+    if (!$post_exists) {
+        echo json_encode(array('error' => 'Il post specificato non esiste'), JSON_UNESCAPED_SLASHES);
+        exit(); 
+    }
+
     function search_like($id, $search, $connection) {
         $result = array();
+        //Se il parametro di ricerca è nullo allora ritorna tutti gli utenti
         if ($search !== null) {
             $query = "
                 SELECT u.id, u.username, u.img
@@ -24,6 +40,7 @@ if (isset($_GET['id_post'])) {
                 $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         } else {
+            //Altrimenti Select con il LIKE
             $query = "
                 SELECT u.id, u.username, u.img
                 FROM users u
@@ -40,18 +57,9 @@ if (isset($_GET['id_post'])) {
         return $result;
     }
 
-    // Chiamata alla funzione search_like
     $like = search_like($id, $search, $connection);
 
-    // Imposta header CORS per consentire l'accesso da qualsiasi origine
-    header("Access-Control-Allow-Origin: *");
-    header("Access-Control-Allow-Methods: GET");
-    header("Access-Control-Allow-Headers: Content-Type");
-
-    // Ritorna i risultati come JSON
     echo json_encode($like, JSON_UNESCAPED_SLASHES);
 }
 
-// Chiudi la connessione al database (se necessario)
-// $connection = null;
 ?>

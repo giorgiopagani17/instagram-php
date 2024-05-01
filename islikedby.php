@@ -1,24 +1,57 @@
 <?php
-// Connessione al database
+
+//Connessione al db
 require_once 'connessione_db.php';
 
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+//Cors Policy
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET");
-header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
+header("Access-Control-Allow-Headers: Content-Type");
 
-// Funzione per ottenere le informazioni sul follow
-function get_like_info($user_id, $id_post, $connection) {
+//Check se user esiste
+function user_exists($user_id, $connection) {
     try {
-        // Esegui la query per controllare se c'è un like
-        $query = "SELECT id_like FROM like_instagram WHERE id_post = :id_post AND id_utente_like = :user_id";
+        $query = "SELECT COUNT(*) AS user_count FROM users WHERE id = :user_id";
         $statement = $connection->prepare($query);
-        $statement->bindParam(":id_post", $id_post, PDO::PARAM_INT);
         $statement->bindParam(":user_id", $user_id, PDO::PARAM_INT);
         $statement->execute();
         $result = $statement->fetch(PDO::FETCH_ASSOC);
 
-        // Verifica se c'è un risultato
+        return ($result['user_count'] > 0);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(["detail" => "Errore nel recupero delle informazioni dal database: " . $e->getMessage()]);
+        exit();
+    }
+}
+
+//Check se post esiste
+function post_exists($post_id, $connection) {
+    try {
+        $query = "SELECT COUNT(*) AS post_count FROM post WHERE id_post = :post_id";
+        $statement = $connection->prepare($query);
+        $statement->bindParam(":post_id", $post_id, PDO::PARAM_INT);
+        $statement->execute();
+        $result = $statement->fetch(PDO::FETCH_ASSOC);
+
+        return ($result['post_count'] > 0);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(["detail" => "Errore nel recupero delle informazioni dal database: " . $e->getMessage()]);
+        exit();
+    }
+}
+
+function get_like_info($user_id, $post_id, $connection) {
+    try {
+        //L'utente ha già messo like al post?
+        $query = "SELECT id_like FROM like_instagram WHERE id_post = :post_id AND id_utente_like = :user_id";
+        $statement = $connection->prepare($query);
+        $statement->bindParam(":post_id", $post_id, PDO::PARAM_INT);
+        $statement->bindParam(":user_id", $user_id, PDO::PARAM_INT);
+        $statement->execute();
+        $result = $statement->fetch(PDO::FETCH_ASSOC);
+
         if ($result) {
             http_response_code(200);
             echo json_encode(["like" => true]);
@@ -30,18 +63,30 @@ function get_like_info($user_id, $id_post, $connection) {
         http_response_code(500);
         echo json_encode(["detail" => "Errore nel recupero delle informazioni sul follow: " . $e->getMessage()]);
     } finally {
-        // Chiudi il cursore
         if ($statement !== null) {
             $statement->closeCursor();
         }
     }
 }
 
-// Ottieni i parametri dalla richiesta GET
+//Get InputDati
 $user_id = $_GET['loggedInUserId'];
-$id_post = $_GET['idPost'];
+$post_id = $_GET['idPost'];
 
-// Chiamare la funzione get_like_info per ottenere le informazioni sul follow
-get_like_info($user_id, $id_post, $connection);
+//Check utente
+if (!user_exists($user_id, $connection)) {
+    http_response_code(404);
+    echo json_encode(["detail" => "L'utente specificato non esiste"]);
+    exit();
+}
+
+//Check post
+if (!post_exists($post_id, $connection)) {
+    http_response_code(404);
+    echo json_encode(["detail" => "Il post specificato non esiste"]);
+    exit();
+}
+
+get_like_info($user_id, $post_id, $connection);
 
 ?>

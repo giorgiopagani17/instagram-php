@@ -1,44 +1,28 @@
 <?php
 
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+//Cors Policy
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
+header("Access-Control-Allow-Headers: Content-Type"); 
 
-// Funzione per gestire la richiesta di follow
 function follow() {
-    require_once 'connessione_db.php'; // Includi il file per la connessione al database
+    //Connessione al db
+    require_once 'connessione_db.php'; 
 
-    // Verifica se il corpo della richiesta contiene dati JSON
+    //Get InputDati
     $data = json_decode(file_get_contents('php://input'), true);
 
+    //Check se InputDati presenti
     if (!isset($_GET['loggedInUserId'])) {
-        // Se il parametro loggedInUserId non è presente, restituisci un errore
         http_response_code(400);
         echo json_encode(["detail" => "Parametro loggedInUserId mancante"]);
         exit();
     }
-    
-    // Verifica se il valore di loggedInUserId è un numero
-    if (!is_numeric($_GET['loggedInUserId'])) {
-        // Se loggedInUserId non è un numero, restituisci un errore
-        http_response_code(400);
-        echo json_encode(["detail" => "Parametro loggedInUserId non valido"]);
-        exit();
-    }
 
+    //Check se InputDati presenti
     if (!isset($_GET['idUserFollowed'])) {
-        // Se il parametro idUserFollowed non è presente, restituisci un errore
         http_response_code(400);
         echo json_encode(["detail" => "Parametro idUserFollowed mancante"]);
-        exit();
-    }
-    
-    // Verifica se il valore di idUserFollowed è un numero
-    if (!is_numeric($_GET['idUserFollowed'])) {
-        // Se idUserFollowed non è un numero, restituisci un errore
-        http_response_code(400);
-        echo json_encode(["detail" => "Parametro idUserFollowed non valido"]);
         exit();
     }
     
@@ -46,7 +30,33 @@ function follow() {
     $idUserFollowed = intval($_GET['idUserFollowed']);
 
     try {
-        // Controlla se l'utente è già seguendo l'altro utente
+        //Check se follower esiste
+        $query_check_follower = "SELECT id FROM users WHERE id = ?";
+        $statement_check_follower = $connection->prepare($query_check_follower);
+        $statement_check_follower->bindParam(1, $loggedInUser, PDO::PARAM_INT);
+        $statement_check_follower->execute();
+        $result_check_follower = $statement_check_follower->fetch(PDO::FETCH_ASSOC);
+
+        if (!$result_check_follower) {
+            http_response_code(400);
+            echo json_encode(["detail" => "L'utente follower non esiste"]);
+            exit();
+        }
+
+        //Check se seguito esiste
+        $query_check_followed = "SELECT id FROM users WHERE id = ?";
+        $statement_check_followed = $connection->prepare($query_check_followed);
+        $statement_check_followed->bindParam(1, $idUserFollowed, PDO::PARAM_INT);
+        $statement_check_followed->execute();
+        $result_check_followed = $statement_check_followed->fetch(PDO::FETCH_ASSOC);
+
+        if (!$result_check_followed) {
+            http_response_code(400);
+            echo json_encode(["detail" => "L'utente seguito non esiste"]);
+            exit();
+        }
+
+        //Check se l'utente segue già l'altro utente
         $check_query = "SELECT * FROM follow WHERE id_utente_follower = ? AND id_utente_seguito = ?";
         $check_statement = $connection->prepare($check_query);
         $check_statement->bindParam(1, $loggedInUser, PDO::PARAM_INT);
@@ -55,41 +65,35 @@ function follow() {
         $result = $check_statement->fetch(PDO::FETCH_ASSOC);
 
         if ($result) {
-            // Se l'utente sta già seguendo l'altro utente, restituisci un errore
             http_response_code(400);
-            echo json_encode(["detail" => "L'utente sta già seguendo l'altro utente"]);
+            echo json_encode(["detail" => "L'utente sta già seguendo l'altro utente"], JSON_UNESCAPED_UNICODE);
             exit();
         }
 
-        // Prepara e esegui l'inserimento nella tabella follow
+        //Inserimento follow
         $query = "INSERT INTO follow (id_utente_follower, id_utente_seguito) VALUES (?, ?)";
         $statement = $connection->prepare($query);
         $statement->bindParam(1, $loggedInUser, PDO::PARAM_INT);
         $statement->bindParam(2, $idUserFollowed, PDO::PARAM_INT);
         $statement->execute();
 
-        // Verifica se l'inserimento è avvenuto con successo
+        //Check inserimento nel db
         if ($statement->rowCount() > 0) {
-            // Se l'inserimento ha avuto successo, restituisci una conferma
             http_response_code(200);
-            echo json_encode(["Message" => "OK"]);
+            echo json_encode(["Message" => "Utente seguito con successo!"]);
         } else {
-            // Se l'inserimento non ha avuto successo, restituisci un errore
             http_response_code(500);
             echo json_encode(["Message" => "Errore durante l'inserimento nella tabella follow"]);
         }
     } catch (PDOException $e) {
-        // Gestione dell'eccezione in caso di errore durante l'inserimento
         http_response_code(500);
         echo json_encode(["Message" => "Errore durante l'inserimento nella tabella follow: " . $e->getMessage()]);
     } finally {
-        // Chiudi il cursore
         $check_statement->closeCursor();
         $statement->closeCursor();
     }
 }
 
-// Chiamare la funzione follow per gestire la richiesta POST
 follow();
 
 ?>

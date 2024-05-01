@@ -2,64 +2,80 @@
 //Connessione al db
 require_once 'connessione_db.php';
 
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+//Cors Policy
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET");
-header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
+header("Access-Control-Allow-Headers: Content-Type");
 
-// Connessione al database
+//Check se utente esiste
+function user_exists($user_id, $connection) {
+    try {
+        $query = "SELECT COUNT(*) AS count FROM users WHERE id = :user_id";
+        $statement = $connection->prepare($query);
+        $statement->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+        $statement->execute();
+        $result = $statement->fetch(PDO::FETCH_ASSOC);
+        return $result['count'] > 0;
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(["detail" => "Errore nel verificare l'esistenza dell'utente: " . $e->getMessage()]);
+        exit(); 
+    }
+}
+
 try {
-    // Ottieni il parametro 'user_id' dalla richiesta GET
+    //Get InputDati
     $user_id = $_GET['user_id'] ?? null;
 
-    // Verifica se il parametro 'user_id' è stato fornito
+    //Check InputDati
     if ($user_id === null) {
-        // Se il parametro non è stato fornito, restituisci un errore 400 Bad Request
         http_response_code(400);
         echo json_encode(["detail" => "Parametro 'user_id' mancante nella richiesta"]);
         exit();
     }
 
-    // Query per ottenere le immagini dell'utente
+    //Check utente
+    if (!user_exists($user_id, $connection)) {
+        http_response_code(404);
+        echo json_encode(["detail" => "L'utente specificato non esiste"]);
+        exit();
+    }
+
+    //Get post utente
     $query = "SELECT img_post FROM post WHERE id_utente = :user_id";
     $statement = $connection->prepare($query);
     $statement->bindParam(':user_id', $user_id, PDO::PARAM_INT);
     $statement->execute();
     $images = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-    // Verifica se sono state trovate immagini per l'utente
+    //Check se ci sono post
     if (!$images) {
         echo json_encode([]);
         exit();
     }
 
-    // Array per memorizzare gli URL delle immagini
+    //Array per contenere le img dei post
     $image_urls = [];
 
-    // Costruisci gli URL delle immagini e aggiungili all'array
+    //Costruzione degli url delle img
     foreach ($images as $image) {
-        // Rimuovi la parte fissa dal nome dell'immagine e codifica l'URL
         $image_name = urlencode(str_replace("C:/Users/giorg/Instagram/postUtenti/", "", $image["img_post"]));
 
-        // Costruisci l'URL dell'immagine utilizzando solo il nome dell'immagine
         $image_url = "http://localhost/instagram/imgpost.php?post_name=" . $image_name;
 
-        // Aggiungi l'URL dell'immagine all'array degli URL delle immagini
         $image_urls[] = $image_url;
     }
 
-    // Reverse cosi i post sono in ordine secondo la data
+    //Reverse così sono in ordine cronologico
     $image_urls = array_reverse($image_urls);
 
-    // Restituisci gli URL delle immagini come JSON
     http_response_code(200);
     header('Content-Type: application/json');
     echo json_encode($image_urls, JSON_UNESCAPED_SLASHES);
 
 } catch (PDOException $e) {
-    // Se si verifica un errore durante la connessione, restituisci un'eccezione HTTP 500
     http_response_code(500);
     echo json_encode(["detail" => "Error: " . $e->getMessage()]);
-    exit(); // Esci dallo script in caso di errore di connessione al database
+    exit(); 
 }
 ?>

@@ -1,52 +1,51 @@
 <?php
-// Connessione al database
+//Connessione al db
 require_once 'connessione_db.php';
 
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+//Cors Policy
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
+header("Access-Control-Allow-Headers: Content-Type");
 
-// Funzione per la registrazione di un nuovo utente
 function registerUser($username, $email, $password) {
     global $connection;
 
-    // Verifica se lo username esiste già
+    //Check se username esiste già
     $stmt_check_username = $connection->prepare("SELECT * FROM users WHERE username = ?");
     $stmt_check_username->execute([$username]);
     $existing_username = $stmt_check_username->fetch();
 
     if ($existing_username) {
         http_response_code(400);
-        echo json_encode(["detail" => "Lo username è già in uso."]);
+        echo json_encode(["detail" => "Lo username è già in uso."], JSON_UNESCAPED_UNICODE);
         exit();
     }
 
-    // Verifica se l'email esiste già
+    //Check se email esiste già
     $stmt_check_email = $connection->prepare("SELECT * FROM users WHERE email = ?");
     $stmt_check_email->execute([$email]);
     $existing_email = $stmt_check_email->fetch();
 
     if ($existing_email) {
         http_response_code(400);
-        echo json_encode(["detail" => "L'email è già in uso."]);
+        echo json_encode(["detail" => "L'email è già in uso."], JSON_UNESCAPED_UNICODE);
         exit();
     }
 
-    // Cripta la password
+    //Crypt passsowrd
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-    // Inserimento del nuovo utente nel database
-    $imgUtente = 'C:/Users/giorg/Instagram/imgUtenti/default.jpg'; // Assumiamo un'immagine predefinita per tutti gli utenti
-    $description = ""; // Assumiamo una descrizione vuota per tutti gli utenti
+    //Inserimento utente nel db
+    $imgUtente = 'C:/Users/giorg/Instagram/imgUtenti/default.jpg'; //Img predefinita per tutti gli utenti
+    $description = ""; //Descrizione vuota default
 
     $stmt_insert_user = $connection->prepare("INSERT INTO users (username, email, password, img, descrizione) VALUES (?, ?, ?, ?, ?)");
     $stmt_insert_user->execute([$username, $email, $hashed_password, $imgUtente, $description]);
 
-    echo json_encode(["Message" => "OK"]);
+    echo json_encode(["Message" => "Registrazione effettuata con successo!"]);
 }
 
-// Gestione della richiesta di registrazione
+//Check & Get InputDati
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents('php://input'), true);
     $username = $data['username'];

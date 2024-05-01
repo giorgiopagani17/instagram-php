@@ -1,78 +1,89 @@
 <?php
-// Credenziali di accesso al database
-$host = "localhost";
-$username = "root";
-$password = "root";
-$db = "instagram";
-$port = 3306;
+// Connessione al database
+require_once 'connessione_db.php';
 
+// Cors Policy
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type");
 
-// Connessione al database
-$connection = new mysqli($host, $username, $password, $db, $port);
-
-// Verifica della connessione
-if ($connection->connect_error) {
-    die("Connessione al database fallita: " . $connection->connect_error);
-}
-
-// Percorso della cartella dove salvare le immagini
+// Path della cartella in cui salvare il post
 $save_folder = "C:/Users/giorg/Instagram/postUtenti/";
 
-// Funzione per gestire l'upload dell'immagine
-function upload_image($user_id, $file, $description) {
-    global $save_folder, $connection;
+// Funzione per caricare l'immagine e inserire il post nel database
+function upload_image($user_id, $file, $description, $connection) {
+    global $save_folder;
 
     try {
-        // Assicurati di avere una cartella dove salvare le immagini
+        // Controlla se la cartella di salvataggio esiste, altrimenti creala
         if (!file_exists($save_folder)) {
             mkdir($save_folder, 0777, true);
         }
 
-        //Commentato perchè almeno funziona al prof
-         $file_path = $save_folder . basename($file["name"]);
-        //salvo l'immagine nella cartella
-         move_uploaded_file($file["tmp_name"], $file_path);
+        // Salva l'immagine nella cartella
+        $file_path = $save_folder . basename($file["name"]);
+        move_uploaded_file($file["tmp_name"], $file_path);
 
-        // Inserisci i dati nel database
+        // Inserisce il post nel database
         $img_path = $save_folder . $file["name"];
-        $solo_data_attuale = date("Y-m-d");
+        $current_date = date("Y-m-d");
         $query = "INSERT INTO post (id_utente, img_post, descrizione, date) VALUES (?, ?, ?, ?)";
         $statement = $connection->prepare($query);
-        $statement->bind_param("isss", $user_id, $img_path, $description, $solo_data_attuale);
+        $statement->bindParam(1, $user_id, PDO::PARAM_INT);
+        $statement->bindParam(2, $img_path, PDO::PARAM_STR);
+        $statement->bindParam(3, $description, PDO::PARAM_STR);
+        $statement->bindParam(4, $current_date, PDO::PARAM_STR);
         $statement->execute();
         $statement->close();
 
+        // Restituisce i dettagli del post
         return ["filename" => $img_path, "description" => $description, "user_id" => $user_id];
     } catch (Exception $e) {
-        echo "Errore durante l'upload e l'inserimento nel database: " . $e->getMessage();
-        return ["Message" => "Error"];
+        // In caso di errore, restituisce un messaggio di errore
+        return ["error" => "Errore durante l'upload e l'inserimento nel database: " . $e->getMessage()];
     }
 }
 
-// Utilizzo della funzione per gestire la richiesta di upload dell'immagine
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["file"])) {
+// Funzione per verificare se l'utente esiste nel database
+function check_user_existence($user_id, $connection) {
+    $query = "SELECT id FROM users WHERE id = ?";
+    $statement = $connection->prepare($query);
+    $statement->bindParam(1, $user_id, PDO::PARAM_INT);
+    $statement->execute();
+    $num_rows = $statement->rowCount();
+    return $num_rows > 0;
+}
+
+// Verifica se la richiesta è di tipo POST e se sono stati ricevuti i dati corretti
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["file"]) && isset($_POST["userId"]) && isset($_POST["description"])) {
     $user_id = $_POST["userId"];
     $file = $_FILES["file"];
     $description = $_POST["description"];
     
-    $result = upload_image($user_id, $file, $description);
-
-    if ($result === true) {
-        // L'upload è stato completato con successo
-        $response = ["message" => "Post inserito correttamente"];
+    // Controlla se l'utente esiste nel database
+    if (!check_user_existence($user_id, $connection)) {
+        // Se l'utente non esiste, restituisce un messaggio di errore
+        $response = ["error" => "L'utente non esiste"];
     } else {
-        // Si è verificato un errore durante l'upload
-        $response = ["error" => $result];
+        // Altrimenti, procede con il caricamento dell'immagine e l'inserimento nel database
+        $result = upload_image($user_id, $file, $description, $connection);
+
+        if (isset($result["error"])) {
+            // Se si verifica un errore durante il caricamento o l'inserimento, restituisce un messaggio di errore
+            $response = ["error" => $result["error"]];
+        } else {
+            // Altrimenti, restituisce un messaggio di successo
+            $response = ["message" => "Post inserito correttamente"];
+        }
     }
-
-    // Ritorna la risposta come JSON
-    echo json_encode($response);
-
+} else {
+    // Se i dati non sono corretti o mancanti, restituisce un messaggio di errore
+    $response = ["error" => "Dati mancanti o non validi nella richiesta"];
 }
 
-// Chiudi la connessione al database
-$connection->close();
+// Invia la risposta JSON al client
+echo json_encode($response);
+
+// Chiude la connessione al database
+$connection = null;
 ?>

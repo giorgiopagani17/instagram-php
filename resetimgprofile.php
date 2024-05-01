@@ -1,37 +1,48 @@
 <?php
+//Cors Policy
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: PUT");
 header("Access-Control-Allow-Headers: Content-Type");
 
-// Include il file per la connessione PDO al database
+//Connessione al db
 require_once 'connessione_db.php';
 
-// Funzione per caricare l'immagine del profilo
 function uploadProfileImage($user_id, $imageName) {
     global $connection;
 
     try {
-        // Assicurati di avere una cartella dove salvare le immagini
+        //Check se user esiste
+        $query_check_user = "SELECT id FROM users WHERE id = ?";
+        $stmt_check_user = $connection->prepare($query_check_user);
+        $stmt_check_user->bindValue(1, $user_id, PDO::PARAM_INT);
+        $stmt_check_user->execute();
+        $user_exists = $stmt_check_user->fetch();
+
+        if (!$user_exists) {
+            return ["Message" => "Utente non trovato con ID $user_id"];
+        }
+
+        //Check se cartella esiste, se non esiste creala
         $save_folder = "C:/Users/giorg/Instagram/imgUtenti/";
         if (!file_exists($save_folder)) {
             mkdir($save_folder, 0777, true);
         }
 
-        // Selezione l'immagine vecchia nel database
+        //Get path img vecchia
         $query = "SELECT img FROM users WHERE id = ?";
         $stmt = $connection->prepare($query);
         $stmt->bindValue(1, $user_id, PDO::PARAM_INT);
         $stmt->execute();
         $old_img_path = $stmt->fetchColumn();
 
-        // Elimina l'immagine precedente se esiste
+        //Elimina l'img vecchia dal pc
         if ($old_img_path && $old_img_path != 'C:/Users/giorg/Instagram/imgUtenti/default.jpg') {
             if (file_exists($old_img_path)) {
                 unlink($old_img_path);
             }
         }
 
-        // Aggiorna il percorso dell'immagine nel database
+        //Update path nuova img
         $file_path = $save_folder . $imageName;
         $update_query = "UPDATE users SET img = ? WHERE id = ?";
         $update_stmt = $connection->prepare($update_query);
@@ -50,18 +61,16 @@ function uploadProfileImage($user_id, $imageName) {
     }
 }
 
-// Ottieni i dati dalla richiesta JSON
+//Check InputDati
 $request_body = file_get_contents('php://input');
 $data = json_decode($request_body, true);
 
-// Ottieni l'ID dell'utente e il nome dell'immagine
+//Get InputDati
 $user_id = intval($data['user_id']);
 $imageName = $data['imageName'];
 
-// Chiamata alla funzione per caricare l'immagine del profilo
 $result = uploadProfileImage($user_id, $imageName);
 
-// Restituisci la risposta JSON
 header('Content-Type: application/json');
-echo json_encode('Reset avvenuto con successo');
+echo json_encode($result);
 ?>

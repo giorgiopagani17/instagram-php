@@ -2,15 +2,15 @@
 //Connessione al db
 require_once 'connessione_db.php';
 
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+//Cors Policy
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET"); // Aggiungi qui tutti i metodi HTTP supportati (GET, POST, etc.)
-header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
+header("Access-Control-Allow-Methods: GET");
+header("Access-Control-Allow-Headers: Content-Type");
 
 use DateTime;
 use stdClass;
 
-// Definizione della classe Post
+//Classe Post
 class Post {
     public $id;
     public $img_post;
@@ -22,13 +22,34 @@ class Post {
     public $user_id;
 }
 
-// Funzione per ottenere i post di un utente
+//Check se utente esiste
+function user_exists($user_id, $connection) {
+    try {
+        $query = "SELECT COUNT(*) AS count FROM users WHERE id = ?";
+        $stmt = $connection->prepare($query);
+        $stmt->execute([$user_id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'] > 0;
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(["detail" => "Errore nel verificare l'esistenza dell'utente: " . $e->getMessage()]);
+        exit();
+    }
+}
+
 function get_user_posts($user_id) {
     global $connection;
 
+    //Check utente
+    if (!user_exists($user_id, $connection)) {
+        http_response_code(404);
+        echo json_encode(["detail" => "L'utente non esiste"]);
+        exit();
+    }
+
     $result_posts = [];
     try {
-        // Esegui la query SQL per ottenere le informazioni sui post dell'utente specificato
+        //Get post degli utenti che lo user segue
         $query = "
             SELECT p.id_post, p.img_post, p.descrizione, p.date, COUNT(l.id_like) AS num_like, u.username, p.id_utente
             FROM post p
@@ -42,7 +63,7 @@ function get_user_posts($user_id) {
         $stmt->execute([$user_id]);
         $result = $stmt->fetchAll();
 
-        // Creare un array di oggetti Post anziché un array di stringhe
+        //Array di oggetti Post
         foreach ($result as $row) {
             $post = new stdClass();
             $post->id = $row["id_post"];
@@ -56,41 +77,29 @@ function get_user_posts($user_id) {
             $result_posts[] = $post;
         }
 
-        // Inverti l'ordine dei post
+        //Reverse ordine così sono in ordine cronologico
         $result_posts = array_reverse($result_posts);
 
         return $result_posts;
     } catch (PDOException $e) {
-        // Se si verifica un errore durante l'esecuzione della query, restituisci un'eccezione HTTP 500
         http_response_code(500);
         echo json_encode(["detail" => "Errore nel recupero dei post: " . $e->getMessage()]);
         exit();
     }
 }
 
-// Verifica se il parametro user_id è presente nell'URL
+//Check InputDati
 if (!isset($_GET['user_id'])) {
-    // Se non è presente, restituisci un errore
     http_response_code(400);
     echo json_encode(["detail" => "Parametro user_id mancante"]);
     exit();
 }
 
-// Verifica se il valore di user_id è un numero
-if (!is_numeric($_GET['user_id'])) {
-    // Se non è un numero, restituisci un errore
-    http_response_code(400);
-    echo json_encode(["detail" => "Parametro user_id non valido"]);
-    exit();
-}
-
-// Ottieni l'ID dell'utente dalla richiesta GET e convertilo in un intero
+//Get InputDati
 $user_id = intval($_GET['user_id']);
 
-// Chiamata alla funzione get_user_posts per ottenere i post dell'utente
 $result_posts = get_user_posts($user_id);
 
-// Restituisci i post come JSON
 echo json_encode($result_posts);
 
 ?>

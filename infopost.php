@@ -1,29 +1,26 @@
 <?php
 
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+//Cors Policy
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET");
-header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
+header("Access-Control-Allow-Headers: Content-Type"); 
 
-// Ottieni il nome dell'immagine dalla query string
+//Check InputDati
 if(isset($_GET['imageName'])) {
-    // Ottieni il nome dell'immagine dal parametro $_GET['post_name']
+    //Get InputDati
     $imageName = $_GET['imageName'];
 
-    // Rimuovi il prefisso "imgpost.php?post_name=" dalla variabile $imageName
+    //Rimuovi il prefisso "imgpost.php?post_name=" 
     $prefixToRemove = 'imgpost.php?post_name=';
     if(strpos($imageName, $prefixToRemove) === 0) {
         $imageName = substr($imageName, strlen($prefixToRemove));
-    }
+    }}
 
-    // Ora $imageName contiene solo il nome dell'immagine
-}
-
-// Includi il file per la connessione al database
+//Connessione al db
 require_once 'connessione_db.php';
 
 try {
-    // Query per ottenere le informazioni del post
+    //Get info post
     $query = "
         SELECT post.id_post, post.id_utente, post.descrizione, post.date, users.username, users.img
         FROM post
@@ -31,7 +28,6 @@ try {
         WHERE post.img_post LIKE ?
     ";
 
-    // Prepara e esegui la query per ottenere le informazioni del post
     $stmt_post = $connection->prepare($query);
     $stmt_post->execute(['%' . $imageName . '%']);
     $result_post = $stmt_post->fetch(PDO::FETCH_ASSOC);
@@ -44,7 +40,7 @@ try {
         $username = $result_post['username'];
         $imgProfile = "http://localhost/instagram/imgprofile.php?user_id={$user_id}";
 
-        // Esegui un'altra query per ottenere il numero di like del post
+        //Get like post
         $like_query = "
             SELECT COUNT(*) AS num_likes
             FROM like_instagram
@@ -61,7 +57,7 @@ try {
             $num_likes = 0;
         }
 
-        // Restituisci le informazioni del post
+        //Restituisci info post
         $response = [
             'post_id' => $post_id,
             'user_id' => $user_id,
@@ -74,15 +70,12 @@ try {
         
         echo json_encode($response, JSON_UNESCAPED_SLASHES);
     } else {
-        // Se il post non è stato trovato
         echo json_encode(["message" => "Post non trovato"]);
     }
 } catch (PDOException $e) {
-    // Se si verifica un errore durante l'esecuzione delle query
     echo json_encode(["message" => "Errore durante l'esecuzione delle query: " . $e->getMessage()]);
 }
 
-// Chiudi la connessione al database
 $connection = null;
 
 ?>

@@ -1,41 +1,54 @@
 <?php
+
 //Connessione al db
 require_once 'connessione_db.php';
 
-
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+//Cors Policy
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
+header("Access-Control-Allow-Headers: Content-Type");
 
-// Verifica se il parametro user_id è presente nell'URL
+//Check se utente esiste
+function user_exists($user_id, $connection) {
+    try {
+        $query = "SELECT COUNT(*) AS count FROM users WHERE id = ?";
+        $stmt = $connection->prepare($query);
+        $stmt->execute([$user_id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'] > 0;
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(["detail" => "Errore nel verificare l'esistenza dell'utente: " . $e->getMessage()]);
+        exit();
+    }
+}
+
+//Check InputDati
 if (!isset($_GET['user_id'])) {
-    // Se non è presente, restituisci un errore
     http_response_code(400);
     echo json_encode(["detail" => "Parametro user_id mancante"]);
     exit();
 }
 
-// Verifica se il valore di user_id è un numero
-if (!is_numeric($_GET['user_id'])) {
-    // Se non è un numero, restituisci un errore
-    http_response_code(400);
-    echo json_encode(["detail" => "Parametro user_id non valido"]);
+//Get InputDati
+$user_id = intval($_GET['user_id']);
+
+//Check utente
+if (!user_exists($user_id, $connection)) {
+    http_response_code(404);
+    echo json_encode(["detail" => "L'utente specificato non esiste"]);
     exit();
 }
 
-// Ottieni l'ID dell'utente dalla richiesta GET e convertilo in un intero
-$user_id = intval($_GET['user_id']);
-
 try {
-    // Prepara le query SQL
+    //Get info del profilo dell'utente
     $query_username = "SELECT username FROM users WHERE id = ?";
     $query_description = "SELECT descrizione FROM users WHERE id = ?";
     $query_follower = "SELECT COUNT(id_utente_follower) AS num_follower FROM follow WHERE id_utente_seguito = ?";
     $query_following = "SELECT COUNT(id_utente_seguito) AS num_following FROM follow WHERE id_utente_follower = ?";
     $query_posts = "SELECT COUNT(id_post) AS num_posts FROM post WHERE id_utente = ?";
 
-    // Esegui le query SQL
+    //Esecuzione query
     $stmt = $connection->prepare($query_username);
     $stmt->execute([$user_id]);
     $username_row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -61,7 +74,7 @@ try {
     $num_posts_row = $stmt->fetch(PDO::FETCH_ASSOC);
     $num_posts = $num_posts_row['num_posts'] ?? 0;
 
-    // Restituisci le informazioni del profilo come JSON
+    //Dati restituiti
     echo json_encode([
         "username" => $username,
         "description" => $description,
@@ -70,7 +83,6 @@ try {
         "num_posts" => $num_posts
     ]);
 } catch (PDOException $e) {
-    // Gestisci gli errori di connessione al database
     http_response_code(500);
     echo json_encode(["detail" => "Errore nel recupero delle informazioni dal database: " . $e->getMessage()]);
     exit();

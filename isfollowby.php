@@ -1,17 +1,33 @@
 <?php
 
-// Imposta l'header CORS per consentire le richieste da qualsiasi origine
+//Cors Policy
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET");
-header("Access-Control-Allow-Headers: Content-Type"); // Aggiungi questa riga per consentire il campo "content-type"
+header("Access-Control-Allow-Headers: Content-Type");
 
-// Includi il file per la connessione al database
+//Connessione al db
 require_once 'connessione_db.php';
 
-// Funzione per ottenere le informazioni sul follow
+//Check se users esistono
+function user_exists($user_id, $connection) {
+    try {
+        $query = "SELECT COUNT(*) AS user_count FROM users WHERE id = :user_id";
+        $statement = $connection->prepare($query);
+        $statement->bindParam(":user_id", $user_id, PDO::PARAM_INT);
+        $statement->execute();
+        $result = $statement->fetch(PDO::FETCH_ASSOC);
+
+        return ($result['user_count'] > 0);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(["detail" => "Errore nel recupero delle informazioni dal database: " . $e->getMessage()]);
+        exit();
+    }
+}
+
 function get_follow_info($user_id, $id_followed, $connection) {
     try {
-        // Esegui la query per controllare se c'è un follow
+        //L'utente segue l'altro utente?
         $query = "SELECT id_follow FROM follow WHERE id_utente_follower = :user_id AND id_utente_seguito = :id_followed";
         $statement = $connection->prepare($query);
         $statement->bindParam(":user_id", $user_id, PDO::PARAM_INT);
@@ -19,7 +35,6 @@ function get_follow_info($user_id, $id_followed, $connection) {
         $statement->execute();
         $result = $statement->fetch(PDO::FETCH_ASSOC);
 
-        // Verifica se c'è un risultato
         if ($result) {
             echo json_encode(["follow" => true]);
         } else {
@@ -31,16 +46,20 @@ function get_follow_info($user_id, $id_followed, $connection) {
     }
 }
 
-// Ottieni i parametri dalla richiesta GET
+//Get InputDati
 $user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : null;
 $id_followed = isset($_GET['id_followed']) ? intval($_GET['id_followed']) : null;
 
-// Verifica se i parametri sono validi
+//Check InputDati
 if ($user_id !== null && $id_followed !== null) {
-    // Chiamare la funzione get_follow_info per ottenere le informazioni sul follow
-    get_follow_info($user_id, $id_followed, $connection);
+    //Check users
+    if (user_exists($user_id, $connection) && user_exists($id_followed, $connection)) {
+        get_follow_info($user_id, $id_followed, $connection);
+    } else {
+        http_response_code(404);
+        echo json_encode(["detail" => "Uno o entrambi gli utenti non esistono"]);
+    }
 } else {
-    // Se i parametri non sono validi, restituisci un errore
     http_response_code(400);
     echo json_encode(["detail" => "Parametri non validi"]);
 }
