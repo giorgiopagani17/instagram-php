@@ -14,14 +14,14 @@ function upload_image($user_id, $file, $description, $connection) {
     global $save_folder;
 
     try {
-        //Se non esiste la cartella la crea
-        if (!file_exists($save_folder)) {
-            mkdir($save_folder, 0777, true);
-        }
+        // //Se non esiste la cartella la crea
+        // if (!file_exists($save_folder)) {
+        //     mkdir($save_folder, 0777, true);
+        // }
 
-        //Salva l'immagine nella cartella
-        $file_path = $save_folder . basename($file["name"]);
-        move_uploaded_file($file["tmp_name"], $file_path);
+        // //Salva l'immagine nella cartella
+        // $file_path = $save_folder . basename($file["name"]);
+        // move_uploaded_file($file["tmp_name"], $file_path);
 
         //Inserimento post
         $img_path = $save_folder . $file["name"];

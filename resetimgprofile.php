@@ -22,11 +22,11 @@ function uploadProfileImage($user_id, $imageName) {
             return ["Message" => "Utente non trovato con ID $user_id"];
         }
 
-        //Check se cartella esiste, se non esiste creala
-        $save_folder = "C:/Users/giorg/Instagram/imgUtenti/";
-        if (!file_exists($save_folder)) {
-            mkdir($save_folder, 0777, true);
-        }
+        // //Check se cartella esiste
+        // $save_folder = "C:/Users/giorg/Instagram/imgUtenti/";
+        // if (!file_exists($save_folder)) {
+        //     mkdir($save_folder, 0777, true);
+        // }
 
         //Get path img vecchia
         $query = "SELECT img FROM users WHERE id = ?";
@@ -35,12 +35,12 @@ function uploadProfileImage($user_id, $imageName) {
         $stmt->execute();
         $old_img_path = $stmt->fetchColumn();
 
-        //Elimina l'img vecchia dal pc
-        if ($old_img_path && $old_img_path != 'C:/Users/giorg/Instagram/imgUtenti/default.jpg') {
-            if (file_exists($old_img_path)) {
-                unlink($old_img_path);
-            }
-        }
+        // //Elimina l'img vecchia dal pc
+        // if ($old_img_path && $old_img_path != 'C:/Users/giorg/Instagram/imgUtenti/default.jpg') {
+        //     if (file_exists($old_img_path)) {
+        //         unlink($old_img_path);
+        //     }
+        // }
 
         //Update path nuova img
         $file_path = $save_folder . $imageName;

@@ -66,9 +66,9 @@ function deletePost() {
         $select_image_statement->closeCursor();
         
         //Eliminala se esiste
-        if (file_exists($img_path)) {
-            unlink($img_path);
-        }
+        // if (file_exists($img_path)) {
+        //     unlink($img_path);
+        // }
         
         //Delete post
         $delete_post_query = "DELETE FROM post WHERE id_post = ?";

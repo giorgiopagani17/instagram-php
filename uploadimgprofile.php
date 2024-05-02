@@ -25,12 +25,12 @@ function uploadProfileImage($user_id, $file) {
         $stmt->execute();
         $old_img_path = $stmt->fetchColumn();
 
-        //Elimina img vecchia dalla cartella
-        if ($old_img_path && $old_img_path != 'C:/Users/giorg/Instagram/imgUtenti/default.jpg') {
-            if (file_exists($old_img_path)) {
-                unlink($old_img_path);
-            }
-        }
+        // //Elimina img vecchia dalla cartella
+        // if ($old_img_path && $old_img_path != 'C:/Users/giorg/Instagram/imgUtenti/default.jpg') {
+        //     if (file_exists($old_img_path)) {
+        //         unlink($old_img_path);
+        //     }
+        // }
 
         //Get nome file
         $temp_file = $file['tmp_name'];
@@ -38,10 +38,10 @@ function uploadProfileImage($user_id, $file) {
         //Costruisci la path
         $file_path = $save_folder . "user_" . $user_id . ".jpg";
 
-        //Sposta il file nella path inserita
-        if (!move_uploaded_file($temp_file, $file_path)) {
-            throw new Exception("Errore durante il salvataggio del file.");
-        }
+        // //Sposta il file nella path inserita
+        // if (!move_uploaded_file($temp_file, $file_path)) {
+        //     throw new Exception("Errore durante il salvataggio del file.");
+        // }
 
         //Update img dello user
         $query = "UPDATE users SET img = :file_path WHERE id = :user_id";
