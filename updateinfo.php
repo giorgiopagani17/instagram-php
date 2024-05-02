@@ -37,10 +37,19 @@ function updateUserInformation($user_id, $username, $new_password, $description,
             $queries[] = ["UPDATE users SET password = ? WHERE id = ?", [$encrypted_new_password, $user_id]];
         }
 
-        //Check se username è diverso
+        //Check se lo username è diverso
         if ($username !== $current_user_info['username']) {
-            //Add query per aggiornare lo username
-            $queries[] = ["UPDATE users SET username = ? WHERE id = ?", [$username, $user_id]];
+            //Check se lo username esiste già
+            $stmt_check_username = $connection->prepare("SELECT COUNT(*) as count FROM users WHERE username = ?");
+            $stmt_check_username->execute([$username]);
+            $username_exists = $stmt_check_username->fetch(PDO::FETCH_ASSOC);
+
+            if ($username_exists['count'] > 0) {
+                return ["error" => "Lo username $username esiste già nel database"];
+            } else {
+                // Aggiungi query per aggiornare lo username
+                $queries[] = ["UPDATE users SET username = ? WHERE id = ?", [$username, $user_id]];
+            }
         }
 
         //Esegui le query
@@ -49,7 +58,11 @@ function updateUserInformation($user_id, $username, $new_password, $description,
             $stmt->execute($query[1]);
         }
 
-        return count($queries) > 0;
+        if(count($queries) > 0){
+            return (["message" => "Informazioni aggiornate con successo"]);
+        } else {
+            return (["message" => "Nessuna modifica avvenuta perchè i dati sono uguali"]);
+        }
     } catch (PDOException $e) {
         throw new Exception("Errore durante l'aggiornamento delle informazioni dell'utente: " . $e->getMessage());
     }
@@ -87,11 +100,7 @@ if (isset($data["username"]) && isset($data["password"]) && isset($data["descrip
             //Se esiste svolgi l'update
             $update_performed = updateUserInformation($user_id, $username, $new_password, $description, $connection);
 
-            if ($update_performed) {
-                echo json_encode(["message" => "Informazioni utente aggiornate con successo"]);
-            } else {
-                echo json_encode(["message" => "Nessuna modifica avvenuta perchè i dati sono uguali"]);
-            }
+            echo json_encode([$update_performed], JSON_UNESCAPED_SLASHES);
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(["detail" => $e->getMessage()]);
